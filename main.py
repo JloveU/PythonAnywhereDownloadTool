@@ -102,21 +102,9 @@ def main():
         return True if not return_file_content else response.content
 
     def download_large_file(file_path, output_file_path, chunk_size=100 * 1024):
-        from urllib.request import urlopen, Request
-
         url = api_url_prefix + f"/files/path{file_path}"
-        request = Request(url)
-        # request.add_header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0")
-        request.add_header("Authorization", f"Token {api_token}")
-        response = urlopen(request)
-        file_size = int(response.getheader("content-length"))
-        chunk_count = ceil(file_size / chunk_size)
-        file = open(output_file_path, "wb")
-        for chunk_index in tqdm(range(chunk_count), desc=f"Downloading {file_path}"):
-            chunk = response.read(chunk_size)
-            if not chunk:
-                break
-            file.write(chunk)
+
+        os.system(f"wget -c -O {output_file_path} --header 'Authorization: Token {api_token}' {url}")
 
         return True
 
