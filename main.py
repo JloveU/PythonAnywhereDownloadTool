@@ -26,7 +26,11 @@ def main():
     local_download_dir = args.local_download_dir
     download_file_max_size = args.download_file_max_size
 
-    download_urls = open(args.download_urls_file, "rt").readlines() + args.download_urls.split("\n")
+    download_urls = []
+    if os.path.exists(args.download_urls_file):
+        download_urls += open(args.download_urls_file, "rt").readlines()
+    if len(args.download_urls) > 0:
+        download_urls += args.download_urls.split("\n")
     download_urls = [url.strip() for url in download_urls]
     download_urls = [url for url in download_urls if (len(url) > 0)]
     download_urls = [url for url in download_urls if (not url.startswith("#"))]
@@ -36,6 +40,7 @@ def main():
     request_kwargs = dict(headers={"Authorization": f"Token {api_token}"})
     remote_home_dir = f"/home/{user_name}"
     ok_file_path = f"{remote_home_dir}/OK.txt"
+    command_output_file_path = f"{remote_home_dir}/command_output.txt"
 
     def check_response(response):
         if response.status_code != 200:
@@ -169,6 +174,32 @@ def main():
 
             # os.system(f"cat {' '.join([file_name + f'.{split_index + 1:03d}' for split_index in range(split_count)])} >{file_name}")
             # os.system(f"rm {file_name}.*")
+
+    command = ""
+    pwd = "~"
+    while True:
+        if command.startswith("cd "):
+            remote_execute(f"pwd >{command_output_file_path}")
+            pwd = download_file(command_output_file_path, return_file_content=True)
+            pwd = pwd.decode(encoding="utf-8")
+            pwd = pwd.replace(remote_home_dir, "~")
+            pwd = pwd.strip()
+
+        command = input(f"{user_name}@www.pythonanywhere.com:{pwd}$ ")
+
+        if command in ["quit", "exit"]:
+            break
+
+        if command.endswith("[no-redirect]"):
+            remote_execute(command)
+        else:
+            remote_execute(f"{command} >{command_output_file_path} 2>&1")
+            command_output = download_file(command_output_file_path, return_file_content=True)
+            try:
+                command_output = command_output.decode(encoding="utf-8")
+            except Exception:
+                pass
+            print(command_output)
 
 
 if __name__ == '__main__':
