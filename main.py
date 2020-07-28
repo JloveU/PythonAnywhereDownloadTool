@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--download-file-max-size", type=int, default=500 * 1024 * 1024)
     parser.add_argument("--download-urls-file", default="download_urls.txt")
     parser.add_argument("--download-urls", default="")
+    parser.add_argument("--startup-commands", default="")
     args = parser.parse_args()
 
     user_name = args.user_name
@@ -31,10 +32,15 @@ def main():
         download_urls += open(args.download_urls_file, "rt").readlines()
     if len(args.download_urls) > 0:
         download_urls += args.download_urls.split("\n")
-    download_urls = [url.strip() for url in download_urls]
-    download_urls = [url for url in download_urls if (len(url) > 0)]
-    download_urls = [url for url in download_urls if (not url.startswith("#"))]
-    download_urls = [(url.split("|")[0].strip(), url.split("|")[1].strip()) for url in download_urls]
+    download_urls = [item.strip() for item in download_urls]
+    download_urls = [item for item in download_urls if (len(item) > 0)]
+    download_urls = [item for item in download_urls if (not item.startswith("#"))]
+    download_urls = [(item.split("|")[0].strip(), item.split("|")[1].strip()) for item in download_urls]
+
+    startup_commands = args.startup_commands.split("\n")
+    startup_commands = [item.strip() for item in startup_commands]
+    startup_commands = [item for item in startup_commands if (len(item) > 0)]
+    startup_commands = [item for item in startup_commands if (not item.startswith("#"))]
 
     api_url_prefix = f"https://www.pythonanywhere.com/api/v0/user/{user_name}"
     request_kwargs = dict(headers={"Authorization": f"Token {api_token}"})
@@ -155,6 +161,10 @@ def main():
     # remote_execute("wget --spider --server-response https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_26_drive_0001/2011_09_26_drive_0001_sync.zip 2>&1 | grep "Content-Length:" | cut -b 19- >content_length.txt")
     # download_file(f"{remote_home_dir}/OK.txt", "OK.txt")
     # download_large_file(f"{remote_home_dir}/2011_09_26_drive_0001_sync.zip", "2011_09_26_drive_0001_sync.zip")
+
+    for command in startup_commands:
+        print(f"Executing startup command: {command}")
+        remote_execute(command)
 
     for index, (download_url, file_name) in enumerate(download_urls):
         print(f"[{index + 1}/{len(download_urls)}] Downloading {download_url} ({file_name})")
